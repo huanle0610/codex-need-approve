@@ -26,7 +26,7 @@ jobs:
       - name: Build release
         run: cargo build --release --locked
 
-      - name: Stage package
+      - name: Stage portable package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/codex-need-approve | Out-Null
@@ -38,14 +38,35 @@ jobs:
           Copy-Item README.md dist/codex-need-approve/
           Compress-Archive -Path dist/codex-need-approve/* -DestinationPath dist/codex-need-approve-windows-x64.zip -Force
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: dotnet tool install --global wix --version 6.0.2
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          if ($version.StartsWith("v")) {
+            $version = $version.Substring(1)
+          }
+          if (-not ($version -match '^\d+\.\d+\.\d+')) {
+            $version = "0.2.0"
+          }
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          wix build installer/Product.wxs -arch x64 -d Version=$version -out dist/CodexNeedApproveSetup-x64.msi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: codex-need-approve-windows-x64
-          path: dist/codex-need-approve-windows-x64.zip
+          path: |
+            dist/CodexNeedApproveSetup-x64.msi
+            dist/codex-need-approve-windows-x64.zip
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/codex-need-approve-windows-x64.zip
+          files: |
+            dist/CodexNeedApproveSetup-x64.msi
+            dist/codex-need-approve-windows-x64.zip

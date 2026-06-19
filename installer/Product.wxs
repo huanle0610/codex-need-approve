@@ -1,0 +1,64 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Codex Need Approve"
+    Manufacturer="huanle0610"
+    Version="$(var.Version)"
+    UpgradeCode="8f4b9c02-bf57-4d3a-94c2-91a5e5e2be2f"
+    Scope="perUser">
+
+    <SummaryInformation Description="Codex Need Approve installer" Manufacturer="huanle0610" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 Codex Need Approve。" />
+    <MediaTemplate EmbedCab="yes" />
+    <Icon Id="AppIcon" SourceFile="assets\codex-need-approve.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsRootFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Codex Need Approve" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Codex Need Approve" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Codex Need Approve" Level="1">
+      <ComponentGroupRef Id="AppComponents" />
+      <ComponentRef Id="StartMenuShortcuts" />
+    </Feature>
+
+    <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable">
+        <File Id="MainExe" Source="target\release\codex-need-approve.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="AppIconFile">
+        <File Source="assets\codex-need-approve.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="AlertSoundFile">
+        <File Source="assets\approval-alert.wav" KeyPath="yes" />
+      </Component>
+      <Component Id="ReadmeFile">
+        <File Source="README.md" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Component Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder">
+      <Shortcut
+        Id="StartMenuShortcut"
+        Name="Codex Need Approve"
+        Description="启动 Codex Need Approve"
+        Target="[INSTALLFOLDER]codex-need-approve.exe"
+        Icon="AppIcon" />
+      <Shortcut
+        Id="TestAlertShortcut"
+        Name="测试提示音"
+        Description="播放一次 Codex Need Approve 提示音"
+        Target="[INSTALLFOLDER]codex-need-approve.exe"
+        Arguments="--test-alert"
+        Icon="AppIcon" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\CodexNeedApprove" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>
+
