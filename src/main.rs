@@ -28,6 +28,7 @@ type Lpcwstr = *const u16;
 
 const WM_DESTROY: Uint = 0x0002;
 const WM_COMMAND: Uint = 0x0111;
+const WM_RBUTTONDOWN: Uint = 0x0204;
 const WM_RBUTTONUP: Uint = 0x0205;
 const WM_CONTEXTMENU: Uint = 0x007B;
 const WM_USER: Uint = 0x0400;
@@ -38,12 +39,10 @@ const PM_REMOVE: Uint = 0x0001;
 const NIM_ADD: Dword = 0x0000;
 const NIM_MODIFY: Dword = 0x0001;
 const NIM_DELETE: Dword = 0x0002;
-const NIM_SETVERSION: Dword = 0x0004;
 const NIF_MESSAGE: Uint = 0x0001;
 const NIF_ICON: Uint = 0x0002;
 const NIF_TIP: Uint = 0x0004;
 const NIF_INFO: Uint = 0x0010;
-const NOTIFYICON_VERSION_4: Uint = 4;
 const NIIF_WARNING: Dword = 0x00000002;
 const SND_ASYNC: Dword = 0x0001;
 const SND_NODEFAULT: Dword = 0x0002;
@@ -204,8 +203,8 @@ unsafe extern "system" fn wnd_proc(
             }
         }
         TRAY_CALLBACK_MESSAGE => {
-            let event = lparam as Uint;
-            if event == WM_RBUTTONUP || event == WM_CONTEXTMENU {
+            let event = (lparam & 0xffff) as Uint;
+            if event == WM_RBUTTONDOWN || event == WM_RBUTTONUP || event == WM_CONTEXTMENU {
                 show_tray_menu(hwnd);
             }
             0
@@ -517,8 +516,6 @@ impl NativeNotifier {
                 DestroyWindow(hwnd);
                 return Err("Shell_NotifyIconW(NIM_ADD) failed".to_string());
             }
-            nid.u_timeout_or_version = NOTIFYICON_VERSION_4;
-            let _ = Shell_NotifyIconW(NIM_SETVERSION, &mut nid);
             Ok(Self { hwnd, icon, nid })
         }
     }

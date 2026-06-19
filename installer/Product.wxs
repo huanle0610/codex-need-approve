@@ -81,7 +81,7 @@
       Impersonate="yes" />
 
     <InstallExecuteSequence>
-      <Custom Action="LaunchApplication" After="InstallFinalize" Condition="NOT Installed" />
+      <Custom Action="LaunchApplication" After="InstallFinalize" Condition="NOT REMOVE" />
     </InstallExecuteSequence>
   </Package>
 </Wix>
