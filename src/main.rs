@@ -32,6 +32,7 @@ const WM_RBUTTONUP: Uint = 0x0205;
 const WM_CONTEXTMENU: Uint = 0x007B;
 const WM_USER: Uint = 0x0400;
 const TRAY_CALLBACK_MESSAGE: Uint = WM_USER + 1;
+const ABOUT_MENU_ID: usize = 1000;
 const EXIT_MENU_ID: usize = 1001;
 const PM_REMOVE: Uint = 0x0001;
 const NIM_ADD: Dword = 0x0000;
@@ -47,12 +48,17 @@ const NIIF_WARNING: Dword = 0x00000002;
 const SND_ASYNC: Dword = 0x0001;
 const SND_NODEFAULT: Dword = 0x0002;
 const SND_FILENAME: Dword = 0x00020000;
+const MB_OK: Uint = 0x00000000;
+const MB_ICONINFORMATION: Uint = 0x00000040;
 const MB_ICONEXCLAMATION: Uint = 0x00000030;
+const MF_SEPARATOR: Uint = 0x00000800;
 const IDI_APPLICATION: usize = 32512;
 const IMAGE_ICON: Uint = 1;
 const LR_LOADFROMFILE: Uint = 0x0010;
 const LR_DEFAULTSIZE: Uint = 0x0040;
 const APP_NAME: &str = "Codex Need Approve";
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+const APP_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 static SHOULD_EXIT: AtomicBool = AtomicBool::new(false);
 
 #[repr(C)]
@@ -120,6 +126,7 @@ extern "system" {
         flags: Uint,
     ) -> *mut c_void;
     fn MessageBeep(sound_type: Uint) -> Bool;
+    fn MessageBoxW(hwnd: Hwnd, text: Lpcwstr, caption: Lpcwstr, flags: Uint) -> i32;
     fn PeekMessageW(msg: *mut Msg, hwnd: Hwnd, min: Uint, max: Uint, remove: Uint) -> Bool;
     fn PostQuitMessage(exit_code: i32);
     fn RegisterClassW(wnd_class: *const WndClassW) -> u16;
@@ -183,12 +190,17 @@ unsafe extern "system" fn wnd_proc(
             0
         }
         WM_COMMAND => {
-            if (wparam & 0xffff) == EXIT_MENU_ID {
-                request_exit();
-                PostQuitMessage(0);
-                0
-            } else {
-                DefWindowProcW(hwnd, msg, wparam, lparam)
+            match wparam & 0xffff {
+                ABOUT_MENU_ID => {
+                    show_about(hwnd);
+                    0
+                }
+                EXIT_MENU_ID => {
+                    request_exit();
+                    PostQuitMessage(0);
+                    0
+                }
+                _ => DefWindowProcW(hwnd, msg, wparam, lparam),
             }
         }
         TRAY_CALLBACK_MESSAGE => {
@@ -215,7 +227,10 @@ unsafe fn show_tray_menu(hwnd: Hwnd) {
     if menu.is_null() {
         return;
     }
+    let about_text = wide_null("About");
     let exit_text = wide_null("Exit");
+    let _ = AppendMenuW(menu, 0, ABOUT_MENU_ID, about_text.as_ptr());
+    let _ = AppendMenuW(menu, MF_SEPARATOR, 0, null());
     let _ = AppendMenuW(menu, 0, EXIT_MENU_ID, exit_text.as_ptr());
     let mut point = Point { x: 0, y: 0 };
     if GetCursorPos(&mut point) != 0 {
@@ -223,6 +238,20 @@ unsafe fn show_tray_menu(hwnd: Hwnd) {
         let _ = TrackPopupMenu(menu, 0, point.x, point.y, 0, hwnd, null());
     }
     let _ = DestroyMenu(menu);
+}
+
+unsafe fn show_about(hwnd: Hwnd) {
+    let body = format!(
+        "{APP_NAME} v{APP_VERSION}\n\n当 Codex Desktop 出现需要你确认的 approval/permission 卡片时，播放声音提醒。\n\n右键托盘图标可以查看 About 或退出程序。\n\nGitHub: {APP_REPOSITORY}"
+    );
+    let body = wide_null(&body);
+    let title = wide_null(APP_NAME);
+    let _ = MessageBoxW(
+        hwnd,
+        body.as_ptr(),
+        title.as_ptr(),
+        MB_OK | MB_ICONINFORMATION,
+    );
 }
 
 fn main() {
@@ -483,7 +512,7 @@ impl NativeNotifier {
             nid.u_flags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
             nid.u_callback_message = TRAY_CALLBACK_MESSAGE;
             nid.h_icon = icon;
-            copy_wide(&mut nid.sz_tip, APP_NAME);
+            set_tray_tooltip(&mut nid);
             if Shell_NotifyIconW(NIM_ADD, &mut nid) == 0 {
                 DestroyWindow(hwnd);
                 return Err("Shell_NotifyIconW(NIM_ADD) failed".to_string());
@@ -499,6 +528,7 @@ impl NativeNotifier {
         unsafe {
             self.nid.u_flags = NIF_INFO | NIF_ICON | NIF_TIP | NIF_MESSAGE;
             self.nid.dw_info_flags = NIIF_WARNING;
+            set_tray_tooltip(&mut self.nid);
             self.nid.u_timeout_or_version = 10_000;
             self.nid.h_icon = self.icon;
             copy_wide(&mut self.nid.sz_info_title, title);
@@ -664,6 +694,10 @@ fn empty_nid() -> NotifyIconDataW {
         guid_item: [0; 16],
         h_balloon_icon: null_mut(),
     }
+}
+
+fn set_tray_tooltip(nid: &mut NotifyIconDataW) {
+    copy_wide(&mut nid.sz_tip, APP_NAME);
 }
 
 fn copy_wide<const N: usize>(dest: &mut [u16; N], text: &str) {
