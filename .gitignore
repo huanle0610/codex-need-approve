@@ -1,0 +1,5 @@
+target/
+*.log
+*.pid
+.DS_Store
+dist/

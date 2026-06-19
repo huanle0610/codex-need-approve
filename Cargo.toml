@@ -1,0 +1,23 @@
+[package]
+name = "codex-need-approve"
+version = "0.1.0"
+edition = "2021"
+description = "Play a sound when Codex Desktop asks for approval on Windows."
+license = "MIT"
+repository = "https://github.com/huanle0610/codex-need-approve"
+
+[dependencies]
+windows = { version = "0.61.3", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

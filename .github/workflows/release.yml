@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build release
+        run: cargo build --release --locked
+
+      - name: Stage package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/codex-need-approve | Out-Null
+          Copy-Item target/release/codex-need-approve.exe dist/codex-need-approve/
+          Copy-Item assets/codex-need-approve.ico dist/codex-need-approve/
+          Copy-Item assets/approval-alert.wav dist/codex-need-approve/
+          Copy-Item start-codex-need-approve.cmd dist/codex-need-approve/
+          Copy-Item stop-codex-need-approve.cmd dist/codex-need-approve/
+          Copy-Item README.md dist/codex-need-approve/
+          Compress-Archive -Path dist/codex-need-approve/* -DestinationPath dist/codex-need-approve-windows-x64.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-need-approve-windows-x64
+          path: dist/codex-need-approve-windows-x64.zip
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/codex-need-approve-windows-x64.zip
