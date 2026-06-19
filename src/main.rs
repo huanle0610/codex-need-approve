@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use codex_need_approve::parse_approval_event;
 use std::collections::{HashMap, HashSet};
 use std::env;

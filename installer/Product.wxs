@@ -22,9 +22,12 @@
       <Directory Id="ApplicationProgramsFolder" Name="Codex Need Approve" />
     </StandardDirectory>
 
+    <StandardDirectory Id="DesktopFolder" />
+
     <Feature Id="MainFeature" Title="Codex Need Approve" Level="1">
       <ComponentGroupRef Id="AppComponents" />
       <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
     </Feature>
 
     <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
@@ -41,6 +44,16 @@
         <File Source="README.md" KeyPath="yes" />
       </Component>
     </ComponentGroup>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder">
+      <Shortcut
+        Id="DesktopShortcut"
+        Name="Codex Need Approve"
+        Description="启动 Codex Need Approve"
+        Target="[INSTALLFOLDER]codex-need-approve.exe"
+        Icon="AppIcon" />
+      <RegistryValue Root="HKCU" Key="Software\CodexNeedApprove" Name="desktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
 
     <Component Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder">
       <Shortcut
@@ -59,6 +72,16 @@
       <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
       <RegistryValue Root="HKCU" Key="Software\CodexNeedApprove" Name="installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>
+    <CustomAction
+      Id="LaunchApplication"
+      FileRef="MainExe"
+      ExeCommand=""
+      Execute="immediate"
+      Return="asyncNoWait"
+      Impersonate="yes" />
+
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApplication" After="InstallFinalize" Condition="NOT Installed" />
+    </InstallExecuteSequence>
   </Package>
 </Wix>
-
