@@ -1,6 +1,6 @@
 [package]
 name = "codex-need-approve"
-version = "0.2.3"
+version = "0.2.6"
 edition = "2021"
 description = "Play a sound when Codex Desktop asks for approval on Windows."
 license = "MIT"

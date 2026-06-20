@@ -61,7 +61,7 @@ Release 包里通常包含：
 - `%LOCALAPPDATA%\Codex\Logs` 下的 Codex 日志。
 - 当前可见的 Codex Desktop 窗口 UI Automation 树。
 
-当检测到确认卡片时，会通过 Windows `PlaySoundW` 播放 `approval-alert.wav`。为了避免重复提示，同一张卡片的 UI 触发和日志触发会共享冷却时间。
+当检测到确认卡片时，会通过 Windows `PlaySoundW` 播放 `approval-alert.wav`。为了避免重复提示，同一张卡片的 UI 触发和日志触发会共享冷却时间；不同 Codex 日志/会话里的确认卡片会分别记录，即使它们的内部 request id 重复，也会再次提示。
 
 ## 注意事项
 

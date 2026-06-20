@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 
-use codex_need_approve::parse_approval_event;
+use codex_need_approve::{parse_approval_event, should_suppress_duplicate_alert};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::c_void;
@@ -188,20 +188,18 @@ unsafe extern "system" fn wnd_proc(
             PostQuitMessage(0);
             0
         }
-        WM_COMMAND => {
-            match wparam & 0xffff {
-                ABOUT_MENU_ID => {
-                    show_about(hwnd);
-                    0
-                }
-                EXIT_MENU_ID => {
-                    request_exit();
-                    PostQuitMessage(0);
-                    0
-                }
-                _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+        WM_COMMAND => match wparam & 0xffff {
+            ABOUT_MENU_ID => {
+                show_about(hwnd);
+                0
             }
-        }
+            EXIT_MENU_ID => {
+                request_exit();
+                PostQuitMessage(0);
+                0
+            }
+            _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+        },
         TRAY_CALLBACK_MESSAGE => {
             let event = (lparam & 0xffff) as Uint;
             if event == WM_RBUTTONDOWN || event == WM_RBUTTONUP || event == WM_CONTEXTMENU {
@@ -315,7 +313,7 @@ fn main() {
                 &mut logger,
                 &mut last_alert_at,
                 "log",
-                Duration::from_secs(30),
+                Duration::from_secs(2),
             );
         }
 
@@ -330,7 +328,7 @@ fn main() {
                             &mut logger,
                             &mut last_alert_at,
                             "ui",
-                            Duration::from_secs(30),
+                            Duration::from_secs(2),
                         );
                         last_ui_signature = Some(signature);
                     }
@@ -355,10 +353,7 @@ fn alert_with_cooldown(
     cooldown: Duration,
 ) {
     let now = Instant::now();
-    if last_alert_at
-        .map(|t| now.duration_since(t) < cooldown)
-        .unwrap_or(false)
-    {
+    if should_suppress_duplicate_alert(last_alert_at.map(|t| now.duration_since(t)), cooldown) {
         logger.log(&format!("alert-suppressed source={source}"));
         return;
     }
